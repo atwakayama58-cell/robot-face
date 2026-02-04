@@ -15,48 +15,42 @@ const smoothVal = document.getElementById('smoothVal');
 const range = document.getElementById('range');
 const rangeVal = document.getElementById('rangeVal');
 
+const landscapeMap = document.getElementById('landscapeMap');
+const ori = document.getElementById('ori');
+
 const debug = document.getElementById('debug');
 const dbg = document.getElementById('dbg');
 
 const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
 
+function persist(key, value){ try{ localStorage.setItem(key, String(value)); }catch{} }
+function restore(key){ try{ return localStorage.getItem(key); }catch{ return null; } }
+
+// ----- line color
 function setLineColor(c){
   document.documentElement.style.setProperty('--line', c);
-  try{ localStorage.setItem('lineColor', c); }catch{}
+  persist('lineColor', c);
 }
-try{
-  const saved = localStorage.getItem('lineColor');
-  if(saved){ lineColor.value = saved; setLineColor(saved); }
-  else { setLineColor(lineColor.value); }
-}catch{ setLineColor(lineColor.value); }
+const savedColor = restore('lineColor');
+if(savedColor){ lineColor.value = savedColor; setLineColor(savedColor); } else setLineColor(lineColor.value);
 lineColor.addEventListener('input', e=>setLineColor(e.target.value));
 
+// ----- mood
 document.querySelectorAll('[data-mood]').forEach(b=>{
   b.addEventListener('click', ()=>{
     const m = b.dataset.mood;
-    if(m==='neutral'){
-      mouth.style.transform='scaleY(1)';
-      mouth.style.borderRadius='0 0 999px 999px';
-    }
-    if(m==='smile'){
-      mouth.style.transform='scaleY(0.6) translateY(-10px)';
-      mouth.style.borderRadius='0 0 999px 999px';
-    }
-    if(m==='surprise'){
-      mouth.style.transform='scaleY(1.6)';
-      mouth.style.borderRadius='999px';
-    }
+    if(m==='neutral'){ mouth.style.transform='scaleY(1)'; mouth.style.borderRadius='0 0 999px 999px'; }
+    if(m==='smile'){ mouth.style.transform='scaleY(0.6) translateY(-10px)'; mouth.style.borderRadius='0 0 999px 999px'; }
+    if(m==='surprise'){ mouth.style.transform='scaleY(1.6)'; mouth.style.borderRadius='999px'; }
   });
 });
 
+// ----- HUD toggle (background tap)
 function toggleHud(){
   hud.classList.toggle('hidden');
-  try{ localStorage.setItem('hudHidden', hud.classList.contains('hidden') ? '1' : '0'); }catch{}
+  persist('hudHidden', hud.classList.contains('hidden') ? '1' : '0');
 }
-try{
-  const hidden = localStorage.getItem('hudHidden') === '1';
-  if(hidden) hud.classList.add('hidden');
-}catch{}
+if(restore('hudHidden') === '1') hud.classList.add('hidden');
 
 let downX=0, downY=0, downTime=0;
 window.addEventListener('pointerdown', (e)=>{
@@ -71,46 +65,34 @@ window.addEventListener('pointerup', (e)=>{
   if(dx <= 10 && dy <= 10 && dt <= 350) toggleHud();
 });
 
+// ----- smoothing animation loop
 let targetX = 0, targetY = 0;
 let currentX = 0, currentY = 0;
-function setPupilTarget(tx, ty){
-  targetX = tx; targetY = ty;
-}
+function setPupilTarget(tx, ty){ targetX = tx; targetY = ty; }
+
 function updateDebug(txt){
   if(!debug.checked){ dbg.textContent=''; return; }
   dbg.textContent = txt;
 }
 
-// Smooth animation loop (slows down motion)
 function raf(){
   const s = Number(smooth.value); // 0..90
-  const lerp = clamp(0.6 - (s/90)*0.55, 0.05, 0.6); // higher smooth => smaller step
+  const lerp = clamp(0.6 - (s/90)*0.55, 0.05, 0.6);
   currentX += (targetX - currentX) * lerp;
   currentY += (targetY - currentY) * lerp;
-
   p1.style.transform = `translate(${currentX.toFixed(2)}px, ${currentY.toFixed(2)}px)`;
   p2.style.transform = `translate(${currentX.toFixed(2)}px, ${currentY.toFixed(2)}px)`;
   requestAnimationFrame(raf);
 }
 requestAnimationFrame(raf);
 
-// Fallback pointer tracking when sensors not active
-let sensorsActive = false;
-window.addEventListener('pointermove', e=>{
-  if (sensorsActive) return;
-  const dx=(e.clientX-innerWidth/2)/(innerWidth/2);
-  const dy=(e.clientY-innerHeight/2)/(innerHeight/2);
-  const maxPx = Number(range.value);
-  setPupilTarget(clamp(dx,-1,1)*maxPx, clamp(dy,-1,1)*maxPx);
-});
-
-// Blink
+// ----- blink
 setInterval(()=>{
   document.querySelectorAll('.eye').forEach(e=>e.style.transform='scaleY(0.1)');
   setTimeout(()=>document.querySelectorAll('.eye').forEach(e=>e.style.transform='scaleY(1)'),120);
 },3200);
 
-// Fullscreen
+// ----- fullscreen
 async function requestFullscreen(){
   const el = document.documentElement;
   try{
@@ -121,18 +103,13 @@ async function requestFullscreen(){
 }
 fullBtn.addEventListener('click', requestFullscreen);
 
-// Persistence helpers
-function persist(key, value){ try{ localStorage.setItem(key, String(value)); }catch{} }
-function restore(key){ try{ return localStorage.getItem(key); }catch{ return null; } }
-
-// Mode
+// ----- mode + sliders restore
 const savedMode = restore('mode');
 if(savedMode === 'tilt'){ modeTilt.checked = true; modeMotion.checked = false; }
 function setModeUI(){ persist('mode', modeMotion.checked ? 'motion' : 'tilt'); }
 modeMotion.addEventListener('change', setModeUI);
 modeTilt.addEventListener('change', setModeUI);
 
-// Sliders
 function loadSlider(slider, label, key){
   const v = restore(key);
   if(v !== null) slider.value = v;
@@ -141,21 +118,69 @@ function loadSlider(slider, label, key){
 function bindSlider(slider, label, key){
   slider.addEventListener('input', ()=>{ label.textContent = String(slider.value); persist(key, slider.value); });
 }
-loadSlider(gain, gainVal, 'gain');
-loadSlider(smooth, smoothVal, 'smooth');
-loadSlider(range, rangeVal, 'range');
-bindSlider(gain, gainVal, 'gain');
-bindSlider(smooth, smoothVal, 'smooth');
-bindSlider(range, rangeVal, 'range');
+loadSlider(gain, gainVal, 'gain'); bindSlider(gain, gainVal, 'gain');
+loadSlider(smooth, smoothVal, 'smooth'); bindSlider(smooth, smoothVal, 'smooth');
+loadSlider(range, rangeVal, 'range'); bindSlider(range, rangeVal, 'range');
 
-// Sensors
+// ----- landscape mapping preference
+const savedMap = restore('landscapeMap');
+if(savedMap) landscapeMap.value = savedMap;
+landscapeMap.addEventListener('change', ()=>persist('landscapeMap', landscapeMap.value));
+
+function getAngle(){
+  const a = (screen.orientation && typeof screen.orientation.angle === 'number') ? screen.orientation.angle
+          : (typeof window.orientation === 'number' ? window.orientation : 0);
+  const n = ((a % 360) + 360) % 360;
+  return n;
+}
+function updateOrientationLabel(){
+  const ang = getAngle();
+  ori.textContent = `angle=${ang}`;
+}
+window.addEventListener('orientationchange', updateOrientationLabel);
+window.addEventListener('resize', updateOrientationLabel);
+updateOrientationLabel();
+
+function applyLandscapeMapping(ax, ay){
+  const ang = getAngle();
+  const isLandscape = (ang === 90 || ang === 270);
+  let x = ax, y = ay;
+
+  const mode = landscapeMap.value;
+
+  if(mode === 'auto'){
+    if(isLandscape){
+      if(ang === 90){ const nx = y; const ny = -x; x = nx; y = ny; }
+      else if(ang === 270){ const nx = -y; const ny = x; x = nx; y = ny; }
+    }
+    return {x, y};
+  }
+
+  if(mode === 'swap'){ return {x: y, y: x}; }
+  if(mode === 'swap-invert-x'){ return {x: -y, y: x}; }
+  if(mode === 'swap-invert-y'){ return {x: y, y: -x}; }
+  if(mode === 'invert-x'){ return {x: -x, y}; }
+  if(mode === 'invert-y'){ return {x, y: -y}; }
+  return {x, y};
+}
+
+// ----- pointer fallback when sensors inactive
+let sensorsActive = false;
+window.addEventListener('pointermove', e=>{
+  if (sensorsActive) return;
+  const dx=(e.clientX-innerWidth/2)/(innerWidth/2);
+  const dy=(e.clientY-innerHeight/2)/(innerHeight/2);
+  const maxPx = Number(range.value);
+  setPupilTarget(clamp(dx,-1,1)*maxPx, clamp(dy,-1,1)*maxPx);
+});
+
+// ----- sensors (motion + tilt)
 let gx=0, gy=0, gz=0;
 const alpha = 0.92;
 let lastTS = 0;
 
 function handleMotion(e){
   if(!modeMotion.checked) return;
-
   const aG = e.accelerationIncludingGravity;
   const aL = e.acceleration;
   if(!aG && !aL) return;
@@ -168,20 +193,23 @@ function handleMotion(e){
   gy = alpha*gy + (1-alpha)*yG;
   gz = alpha*gz + (1-alpha)*zG;
 
-  const lax = (aL?.x ?? (xG - gx));
-  const lay = (aL?.y ?? (yG - gy));
+  let ax = (aL?.x ?? (xG - gx));
+  let ay = (aL?.y ?? (yG - gy));
+
+  const mapped = applyLandscapeMapping(ax, ay);
+  ax = mapped.x; ay = mapped.y;
 
   const g = Number(gain.value);
   const maxPx = Number(range.value);
 
-  const tx = clamp(lax * g, -maxPx, maxPx);
-  const ty = clamp(lay * g, -maxPx, maxPx);
+  const tx = clamp(ax * g, -maxPx, maxPx);
+  const ty = clamp(ay * g, -maxPx, maxPx);
 
   setPupilTarget(tx, ty);
 
   const now = Date.now();
   if(debug.checked && now - lastTS > 90){
-    updateDebug(`motion ax=${lax.toFixed(2)} ay=${lay.toFixed(2)} | target=(${tx.toFixed(1)},${ty.toFixed(1)})`);
+    updateDebug(`motion ax=${ax.toFixed(2)} ay=${ay.toFixed(2)} | target=(${tx.toFixed(1)},${ty.toFixed(1)})`);
     lastTS = now;
   }
 }
@@ -195,14 +223,11 @@ function handleOrientation(e){
   const ny = clamp(beta  / 30, -1, 1);
 
   const maxPx = Number(range.value);
-  const tx = nx * maxPx;
-  const ty = ny * maxPx;
-
-  setPupilTarget(tx, ty);
+  setPupilTarget(nx * maxPx, ny * maxPx);
 
   const now = Date.now();
   if(debug.checked && now - lastTS > 120){
-    updateDebug(`tilt beta=${beta.toFixed(1)} gamma=${gamma.toFixed(1)} | target=(${tx.toFixed(1)},${ty.toFixed(1)})`);
+    updateDebug(`tilt beta=${beta.toFixed(1)} gamma=${gamma.toFixed(1)} | target=(${(nx*maxPx).toFixed(1)},${(ny*maxPx).toFixed(1)})`);
     lastTS = now;
   }
 }

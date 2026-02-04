@@ -59,13 +59,26 @@
       </div>
 
       <div class="row">
+        <label class="label">Landscape Mapping</label>
+        <select id="landscapeMap" class="select">
+          <option value="auto" selected>Auto</option>
+          <option value="swap">Swap X/Y</option>
+          <option value="swap-invert-x">Swap + invert X</option>
+          <option value="swap-invert-y">Swap + invert Y</option>
+          <option value="invert-x">Invert X</option>
+          <option value="invert-y">Invert Y</option>
+        </select>
+        <span class="mono" id="ori"></span>
+      </div>
+
+      <div class="row">
         <label class="label"><input type="checkbox" id="debug" /> Debug</label>
         <span class="mono" id="dbg"></span>
       </div>
 
       <div class="tip">
         Tap the background to show/hide this UI.<br/>
-        Tips: Motion can feel “snappy” on iPad. Increase Smoothness to slow it down.
+        Tip: In landscape, iPad motion axes may rotate. Use Landscape Mapping if it feels swapped.
       </div>
     </section>
   </main>
