@@ -3,7 +3,7 @@
   "short_name":"RobotFace",
   "start_url":"./index.html",
   "display":"standalone",
-  "background_color":"#000000",
-  "theme_color":"#000000",
+  "background_color":"#050b12",
+  "theme_color":"#050b12",
   "icons":[]
 }

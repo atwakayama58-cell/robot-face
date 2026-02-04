@@ -2,7 +2,9 @@ const hud = document.getElementById('hud');
 const p1 = document.getElementById('p1');
 const p2 = document.getElementById('p2');
 const mouth = document.getElementById('mouth');
-const lineColor = document.getElementById('lineColor');
+
+const accent = document.getElementById('accent');
+const pupilColor = document.getElementById('pupilColor');
 const fullBtn = document.getElementById('fullBtn');
 const sensorBtn = document.getElementById('sensorBtn');
 const modeMotion = document.getElementById('modeMotion');
@@ -22,26 +24,45 @@ const debug = document.getElementById('debug');
 const dbg = document.getElementById('dbg');
 
 const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
-
 function persist(key, value){ try{ localStorage.setItem(key, String(value)); }catch{} }
 function restore(key){ try{ return localStorage.getItem(key); }catch{ return null; } }
 
-// ----- line color
-function setLineColor(c){
-  document.documentElement.style.setProperty('--line', c);
-  persist('lineColor', c);
+// ----- colors
+function setAccent(c){
+  document.documentElement.style.setProperty('--accent', c);
+  persist('accent', c);
 }
-const savedColor = restore('lineColor');
-if(savedColor){ lineColor.value = savedColor; setLineColor(savedColor); } else setLineColor(lineColor.value);
-lineColor.addEventListener('input', e=>setLineColor(e.target.value));
+function setPupil(c){
+  document.documentElement.style.setProperty('--pupil', c);
+  persist('pupil', c);
+}
+const savedA = restore('accent');
+if(savedA){ accent.value = savedA; setAccent(savedA); } else setAccent(accent.value);
+accent.addEventListener('input', e=>setAccent(e.target.value));
 
-// ----- mood
+const savedP = restore('pupil');
+if(savedP){ pupilColor.value = savedP; setPupil(savedP); } else setPupil(pupilColor.value);
+pupilColor.addEventListener('input', e=>setPupil(e.target.value));
+
+// ----- moods (mouth only)
 document.querySelectorAll('[data-mood]').forEach(b=>{
   b.addEventListener('click', ()=>{
     const m = b.dataset.mood;
-    if(m==='neutral'){ mouth.style.transform='scaleY(1)'; mouth.style.borderRadius='0 0 999px 999px'; }
-    if(m==='smile'){ mouth.style.transform='scaleY(0.6) translateY(-10px)'; mouth.style.borderRadius='0 0 999px 999px'; }
-    if(m==='surprise'){ mouth.style.transform='scaleY(1.6)'; mouth.style.borderRadius='999px'; }
+    if(m==='smile'){
+      mouth.style.display='block';
+      mouth.style.opacity='0.95';
+      mouth.style.transform='translateY(0px) scaleY(1)';
+      mouth.style.borderRadius='0 0 999px 999px';
+    }
+    if(m==='neutral'){
+      mouth.style.display='block';
+      mouth.style.opacity='0.55';
+      mouth.style.transform='translateY(10px) scaleY(0.20)';
+      mouth.style.borderRadius='0 0 999px 999px';
+    }
+    if(m==='off'){
+      mouth.style.display='none';
+    }
   });
 });
 
@@ -55,42 +76,15 @@ if(restore('hudHidden') === '1') hud.classList.add('hidden');
 let downX=0, downY=0, downTime=0;
 window.addEventListener('pointerdown', (e)=>{
   if(hud.contains(e.target)) return;
-  downX = e.clientX; downY = e.clientY; downTime = Date.now();
+  downX=e.clientX; downY=e.clientY; downTime=Date.now();
 });
 window.addEventListener('pointerup', (e)=>{
   if(hud.contains(e.target)) return;
-  const dx = Math.abs(e.clientX - downX);
-  const dy = Math.abs(e.clientY - downY);
-  const dt = Date.now() - downTime;
-  if(dx <= 10 && dy <= 10 && dt <= 350) toggleHud();
+  const dx=Math.abs(e.clientX-downX);
+  const dy=Math.abs(e.clientY-downY);
+  const dt=Date.now()-downTime;
+  if(dx<=10 && dy<=10 && dt<=350) toggleHud();
 });
-
-// ----- smoothing animation loop
-let targetX = 0, targetY = 0;
-let currentX = 0, currentY = 0;
-function setPupilTarget(tx, ty){ targetX = tx; targetY = ty; }
-
-function updateDebug(txt){
-  if(!debug.checked){ dbg.textContent=''; return; }
-  dbg.textContent = txt;
-}
-
-function raf(){
-  const s = Number(smooth.value); // 0..90
-  const lerp = clamp(0.6 - (s/90)*0.55, 0.05, 0.6);
-  currentX += (targetX - currentX) * lerp;
-  currentY += (targetY - currentY) * lerp;
-  p1.style.transform = `translate(${currentX.toFixed(2)}px, ${currentY.toFixed(2)}px)`;
-  p2.style.transform = `translate(${currentX.toFixed(2)}px, ${currentY.toFixed(2)}px)`;
-  requestAnimationFrame(raf);
-}
-requestAnimationFrame(raf);
-
-// ----- blink
-setInterval(()=>{
-  document.querySelectorAll('.eye').forEach(e=>e.style.transform='scaleY(0.1)');
-  setTimeout(()=>document.querySelectorAll('.eye').forEach(e=>e.style.transform='scaleY(1)'),120);
-},3200);
 
 // ----- fullscreen
 async function requestFullscreen(){
@@ -103,13 +97,7 @@ async function requestFullscreen(){
 }
 fullBtn.addEventListener('click', requestFullscreen);
 
-// ----- mode + sliders restore
-const savedMode = restore('mode');
-if(savedMode === 'tilt'){ modeTilt.checked = true; modeMotion.checked = false; }
-function setModeUI(){ persist('mode', modeMotion.checked ? 'motion' : 'tilt'); }
-modeMotion.addEventListener('change', setModeUI);
-modeTilt.addEventListener('change', setModeUI);
-
+// ----- sliders restore
 function loadSlider(slider, label, key){
   const v = restore(key);
   if(v !== null) slider.value = v;
@@ -122,7 +110,14 @@ loadSlider(gain, gainVal, 'gain'); bindSlider(gain, gainVal, 'gain');
 loadSlider(smooth, smoothVal, 'smooth'); bindSlider(smooth, smoothVal, 'smooth');
 loadSlider(range, rangeVal, 'range'); bindSlider(range, rangeVal, 'range');
 
-// ----- landscape mapping preference
+// ----- mode restore
+const savedMode = restore('mode');
+if(savedMode === 'tilt'){ modeTilt.checked = true; modeMotion.checked = false; }
+function setModeUI(){ persist('mode', modeMotion.checked ? 'motion' : 'tilt'); }
+modeMotion.addEventListener('change', setModeUI);
+modeTilt.addEventListener('change', setModeUI);
+
+// ----- landscape mapping
 const savedMap = restore('landscapeMap');
 if(savedMap) landscapeMap.value = savedMap;
 landscapeMap.addEventListener('change', ()=>persist('landscapeMap', landscapeMap.value));
@@ -130,13 +125,9 @@ landscapeMap.addEventListener('change', ()=>persist('landscapeMap', landscapeMap
 function getAngle(){
   const a = (screen.orientation && typeof screen.orientation.angle === 'number') ? screen.orientation.angle
           : (typeof window.orientation === 'number' ? window.orientation : 0);
-  const n = ((a % 360) + 360) % 360;
-  return n;
+  return ((a % 360) + 360) % 360;
 }
-function updateOrientationLabel(){
-  const ang = getAngle();
-  ori.textContent = `angle=${ang}`;
-}
+function updateOrientationLabel(){ ori.textContent = `angle=${getAngle()}`; }
 window.addEventListener('orientationchange', updateOrientationLabel);
 window.addEventListener('resize', updateOrientationLabel);
 updateOrientationLabel();
@@ -145,17 +136,15 @@ function applyLandscapeMapping(ax, ay){
   const ang = getAngle();
   const isLandscape = (ang === 90 || ang === 270);
   let x = ax, y = ay;
-
   const mode = landscapeMap.value;
 
   if(mode === 'auto'){
     if(isLandscape){
-      if(ang === 90){ const nx = y; const ny = -x; x = nx; y = ny; }
-      else if(ang === 270){ const nx = -y; const ny = x; x = nx; y = ny; }
+      if(ang === 90){ const nx=y; const ny=-x; x=nx; y=ny; }
+      else if(ang === 270){ const nx=-y; const ny=x; x=nx; y=ny; }
     }
     return {x, y};
   }
-
   if(mode === 'swap'){ return {x: y, y: x}; }
   if(mode === 'swap-invert-x'){ return {x: -y, y: x}; }
   if(mode === 'swap-invert-y'){ return {x: y, y: -x}; }
@@ -164,71 +153,85 @@ function applyLandscapeMapping(ax, ay){
   return {x, y};
 }
 
-// ----- pointer fallback when sensors inactive
-let sensorsActive = false;
+// ----- smoothing loop
+let targetX=0, targetY=0;
+let currentX=0, currentY=0;
+function setPupilTarget(tx, ty){ targetX=tx; targetY=ty; }
+
+function raf(){
+  const s = Number(smooth.value);
+  const lerp = clamp(0.6 - (s/90)*0.55, 0.05, 0.6);
+  currentX += (targetX - currentX) * lerp;
+  currentY += (targetY - currentY) * lerp;
+  p1.style.transform = `translate(${currentX.toFixed(2)}px, ${currentY.toFixed(2)}px)`;
+  p2.style.transform = `translate(${currentX.toFixed(2)}px, ${currentY.toFixed(2)}px)`;
+  requestAnimationFrame(raf);
+}
+requestAnimationFrame(raf);
+
+// ----- debug
+function setDbg(t){ dbg.textContent = debug.checked ? t : ''; }
+
+// ----- pointer fallback
+let sensorsActive=false;
 window.addEventListener('pointermove', e=>{
-  if (sensorsActive) return;
+  if(sensorsActive) return;
   const dx=(e.clientX-innerWidth/2)/(innerWidth/2);
   const dy=(e.clientY-innerHeight/2)/(innerHeight/2);
-  const maxPx = Number(range.value);
+  const maxPx=Number(range.value);
   setPupilTarget(clamp(dx,-1,1)*maxPx, clamp(dy,-1,1)*maxPx);
 });
 
-// ----- sensors (motion + tilt)
-let gx=0, gy=0, gz=0;
-const alpha = 0.92;
-let lastTS = 0;
+// ----- sensors
+let gx=0, gy=0;
+const alpha=0.92;
+let lastTS=0;
 
 function handleMotion(e){
   if(!modeMotion.checked) return;
-  const aG = e.accelerationIncludingGravity;
-  const aL = e.acceleration;
+  const aG=e.accelerationIncludingGravity;
+  const aL=e.acceleration;
   if(!aG && !aL) return;
 
-  const xG = aG?.x ?? 0;
-  const yG = aG?.y ?? 0;
-  const zG = aG?.z ?? 0;
+  const xG=aG?.x ?? 0;
+  const yG=aG?.y ?? 0;
 
   gx = alpha*gx + (1-alpha)*xG;
   gy = alpha*gy + (1-alpha)*yG;
-  gz = alpha*gz + (1-alpha)*zG;
 
   let ax = (aL?.x ?? (xG - gx));
   let ay = (aL?.y ?? (yG - gy));
 
-  const mapped = applyLandscapeMapping(ax, ay);
-  ax = mapped.x; ay = mapped.y;
+  const m = applyLandscapeMapping(ax, ay);
+  ax=m.x; ay=m.y;
 
-  const g = Number(gain.value);
-  const maxPx = Number(range.value);
-
-  const tx = clamp(ax * g, -maxPx, maxPx);
-  const ty = clamp(ay * g, -maxPx, maxPx);
+  const g=Number(gain.value);
+  const maxPx=Number(range.value);
+  const tx = clamp(ax*g, -maxPx, maxPx);
+  const ty = clamp(ay*g, -maxPx, maxPx);
 
   setPupilTarget(tx, ty);
 
-  const now = Date.now();
-  if(debug.checked && now - lastTS > 90){
-    updateDebug(`motion ax=${ax.toFixed(2)} ay=${ay.toFixed(2)} | target=(${tx.toFixed(1)},${ty.toFixed(1)})`);
-    lastTS = now;
+  const now=Date.now();
+  if(debug.checked && now-lastTS>90){
+    setDbg(`motion ax=${ax.toFixed(2)} ay=${ay.toFixed(2)} target=(${tx.toFixed(1)},${ty.toFixed(1)})`);
+    lastTS=now;
   }
 }
 
 function handleOrientation(e){
   if(!modeTilt.checked) return;
-  const gamma = (typeof e.gamma === 'number') ? e.gamma : 0;
-  const beta  = (typeof e.beta  === 'number') ? e.beta  : 0;
+  const gamma=(typeof e.gamma==='number')? e.gamma : 0;
+  const beta =(typeof e.beta==='number')? e.beta : 0;
+  const nx=clamp(gamma/30,-1,1);
+  const ny=clamp(beta/30,-1,1);
+  const maxPx=Number(range.value);
+  setPupilTarget(nx*maxPx, ny*maxPx);
 
-  const nx = clamp(gamma / 30, -1, 1);
-  const ny = clamp(beta  / 30, -1, 1);
-
-  const maxPx = Number(range.value);
-  setPupilTarget(nx * maxPx, ny * maxPx);
-
-  const now = Date.now();
-  if(debug.checked && now - lastTS > 120){
-    updateDebug(`tilt beta=${beta.toFixed(1)} gamma=${gamma.toFixed(1)} | target=(${(nx*maxPx).toFixed(1)},${(ny*maxPx).toFixed(1)})`);
-    lastTS = now;
+  const now=Date.now();
+  if(debug.checked && now-lastTS>120){
+    setDbg(`tilt beta=${beta.toFixed(1)} gamma=${gamma.toFixed(1)} target=(${(nx*maxPx).toFixed(1)},${(ny*maxPx).toFixed(1)})`);
+    lastTS=now;
   }
 }
 
@@ -242,14 +245,13 @@ async function enableSensors(){
       const res2 = await DeviceOrientationEvent.requestPermission();
       if (res2 !== 'granted') { sensorBtn.textContent = 'Sensors Denied'; return; }
     }
-
-    window.addEventListener('devicemotion', handleMotion, { passive: true });
-    window.addEventListener('deviceorientation', handleOrientation, { passive: true });
-    sensorsActive = true;
-    sensorBtn.textContent = 'Sensors Enabled';
-    persist('sensorsEnabled', '1');
+    window.addEventListener('devicemotion', handleMotion, {passive:true});
+    window.addEventListener('deviceorientation', handleOrientation, {passive:true});
+    sensorsActive=true;
+    sensorBtn.textContent='Sensors Enabled';
+    persist('sensorsEnabled','1');
   }catch(_e){
-    sensorBtn.textContent = 'Sensors Unsupported';
+    sensorBtn.textContent='Sensors Unsupported';
   }
 }
 sensorBtn.addEventListener('click', enableSensors);

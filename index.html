@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <meta name="theme-color" content="#000000" />
+  <meta name="theme-color" content="#050b12" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Robot Face" />
@@ -13,25 +13,37 @@
 </head>
 <body>
   <main class="app" id="app">
-    <section class="face" aria-label="Robot face">
-      <div class="eyes">
-        <div class="eye"><div class="pupil" id="p1"></div></div>
-        <div class="eye"><div class="pupil" id="p2"></div></div>
+    <section class="screen" aria-label="Robot face">
+      <div class="scanlines"></div>
+      <div class="glow"></div>
+
+      <div class="eyes" aria-label="Eyes">
+        <div class="eye" aria-label="Left eye">
+          <div class="eye-shine"></div>
+          <div class="pupil" id="p1"></div>
+        </div>
+        <div class="eye" aria-label="Right eye">
+          <div class="eye-shine"></div>
+          <div class="pupil" id="p2"></div>
+        </div>
       </div>
-      <div class="mouth" id="mouth"></div>
+
+      <div class="mouth" id="mouth" aria-label="Mouth"></div>
     </section>
 
     <section class="hud hidden" id="hud" aria-label="Controls">
       <div class="row">
-        <button class="btn" data-mood="neutral">Neutral</button>
         <button class="btn" data-mood="smile">Smile</button>
-        <button class="btn" data-mood="surprise">Surprise</button>
+        <button class="btn" data-mood="neutral">Neutral</button>
+        <button class="btn" data-mood="off">No Mouth</button>
+        <button class="btn" id="fullBtn">Fullscreen</button>
       </div>
 
       <div class="row">
-        <label class="label" for="lineColor">Line Color</label>
-        <input id="lineColor" type="color" value="#00ff00" />
-        <button class="btn" id="fullBtn">Fullscreen</button>
+        <label class="label" for="accent">Accent</label>
+        <input id="accent" type="color" value="#1aa7ff" />
+        <label class="label" for="pupilColor">Pupil</label>
+        <input id="pupilColor" type="color" value="#2fe3ff" />
       </div>
 
       <div class="row">
@@ -42,20 +54,20 @@
 
       <div class="row">
         <label class="label" for="gain">Motion Gain</label>
-        <input id="gain" type="range" min="3" max="80" value="18" />
-        <span class="mono" id="gainVal">18</span>
+        <input id="gain" type="range" min="3" max="90" value="22" />
+        <span class="mono" id="gainVal">22</span>
       </div>
 
       <div class="row">
         <label class="label" for="smooth">Smoothness</label>
-        <input id="smooth" type="range" min="0" max="90" value="55" />
-        <span class="mono" id="smoothVal">55</span>
+        <input id="smooth" type="range" min="0" max="90" value="72" />
+        <span class="mono" id="smoothVal">72</span>
       </div>
 
       <div class="row">
         <label class="label" for="range">Eye Range</label>
-        <input id="range" type="range" min="24" max="70" value="54" />
-        <span class="mono" id="rangeVal">54</span>
+        <input id="range" type="range" min="12" max="110" value="82" />
+        <span class="mono" id="rangeVal">82</span>
       </div>
 
       <div class="row">
@@ -78,7 +90,7 @@
 
       <div class="tip">
         Tap the background to show/hide this UI.<br/>
-        Tip: In landscape, iPad motion axes may rotate. Use Landscape Mapping if it feels swapped.
+        Eyes are big; pupils move inside each eye (direction is easy to see).
       </div>
     </section>
   </main>

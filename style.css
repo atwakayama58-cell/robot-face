@@ -1,4 +1,11 @@
-:root{--bg:#000;--line:#00ff00;}
+:root{
+  --bg: #050b12;
+  --screen1:#0a1b2b;
+  --screen2:#07111b;
+  --accent:#1aa7ff;      /* outline / mouth */
+  --pupil:#2fe3ff;       /* pupil fill */
+  --pupil2:#0b5aa0;      /* pupil depth */
+}
 *{box-sizing:border-box;}
 html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;}
 body{
@@ -9,30 +16,107 @@ body{
   touch-action: manipulation;
 }
 .app{height:100%;display:flex;align-items:center;justify-content:center;}
-.face{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12vh;}
-.eyes{width:100%;display:flex;justify-content:space-evenly;}
+
+/* Fullscreen screen */
+.screen{
+  width:100vw;height:100vh;
+  position:relative;
+  background: radial-gradient(120% 140% at 35% 25%, #143a57, var(--screen1) 60%, var(--screen2));
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:min(9vh, 110px);
+  overflow:hidden;
+}
+.scanlines{
+  position:absolute; inset:0;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0,0,0,.0),
+    rgba(0,0,0,.0) 6px,
+    rgba(0,0,0,.18) 10px,
+    rgba(0,0,0,.18) 12px
+  );
+  opacity:.55;
+  pointer-events:none;
+}
+.glow{
+  position:absolute; inset:-30%;
+  background: radial-gradient(circle at 50% 45%, rgba(42,232,255,.16), transparent 55%);
+  filter: blur(10px);
+  pointer-events:none;
+}
+
+/* Eyes */
+.eyes{
+  width: min(92vw, 1100px);
+  display:flex;
+  justify-content:space-evenly;
+  align-items:center;
+  gap: min(10vw, 140px);
+  position:relative;
+  z-index:2;
+}
 .eye{
-  width:28vw;max-width:280px;aspect-ratio:1/1;
-  border:10px solid var(--line);border-radius:50%;
-  position:relative;transition:transform 120ms linear;
+  width: min(22vw, 240px);
+  height: min(22vw, 240px);
+  border-radius:999px;
+  border: 10px solid color-mix(in srgb, var(--accent) 85%, white 0%);
+  background: radial-gradient(circle at 35% 30%, rgba(255,255,255,.18), rgba(255,255,255,.05) 40%, rgba(0,0,0,.0) 72%);
+  box-shadow:
+    0 0 0 3px rgba(0,0,0,.12) inset,
+    0 0 26px rgba(26,167,255,.18);
+  position:relative;
+  overflow:hidden;
 }
+.eye-shine{
+  position:absolute;
+  inset:-35%;
+  background: radial-gradient(circle at 35% 30%, rgba(255,255,255,.20), transparent 55%);
+  filter: blur(6px);
+  opacity:.7;
+  pointer-events:none;
+}
+/* The moving eyeball (pupil) */
 .pupil{
-  width:30%;height:30%;background:var(--line);border-radius:50%;
-  position:absolute;left:35%;top:35%;
-  transition:transform 160ms linear;
+  position:absolute;
+  left:50%; top:50%;
+  width: 62%;
+  height: 62%;
+  margin-left:-31%;
+  margin-top:-31%;
+  border-radius:999px;
+  background: radial-gradient(circle at 35% 30%, var(--pupil), color-mix(in srgb, var(--accent) 65%, var(--pupil2) 35%) 55%, var(--pupil2));
+  box-shadow:
+    0 0 22px rgba(26,167,255,.55),
+    0 0 44px rgba(47,227,255,.22);
+  transition: transform 160ms linear;
 }
+
+/* Mouth */
 .mouth{
-  width:60vw;max-width:600px;height:18vh;max-height:180px;
-  border:10px solid var(--line);border-top:none;
-  border-radius:0 0 999px 999px;
-  transition:transform .15s ease,border-radius .15s ease;
+  width: min(28vw, 320px);
+  height: min(14vw, 160px);
+  border: 14px solid rgba(255,255,255,0);
+  border-bottom: 14px solid color-mix(in srgb, var(--accent) 85%, white 0%);
+  border-radius: 0 0 999px 999px;
+  filter: drop-shadow(0 0 18px rgba(26,167,255,.28));
+  opacity: .95;
+  z-index:2;
 }
+
+/* HUD */
 .hud{
   position:fixed;left:12px;bottom:12px;
-  background:rgba(0,0,0,.6);padding:12px;border-radius:16px;
-  border:1px solid rgba(255,255,255,.18);color:#fff;
-  backdrop-filter: blur(6px);-webkit-backdrop-filter: blur(6px);
-  max-width: min(92vw, 900px);
+  background:rgba(0,0,0,.58);
+  padding:12px;border-radius:16px;
+  border:1px solid rgba(255,255,255,.18);
+  color:#fff;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  max-width: min(94vw, 980px);
+  z-index:10;
 }
 .row{display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap;align-items:center;}
 .btn{
@@ -49,7 +133,7 @@ body{
 }
 .label{font-size:14px;opacity:.92;}
 .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:13px;opacity:.9;}
-#lineColor{width:44px;height:36px;padding:0;border-radius:10px;border:1px solid rgba(255,255,255,.25);background:transparent;}
+#accent,#pupilColor{width:44px;height:36px;padding:0;border-radius:10px;border:1px solid rgba(255,255,255,.25);background:transparent;}
 #gain,#smooth,#range{width:180px;}
 .tip{font-size:13px;opacity:.85;line-height:1.35;}
 .hidden{display:none;}
