@@ -36,13 +36,25 @@
       </div>
 
       <div class="row">
-        <button class="btn" id="orientBtn">Enable Tilt</button>
-        <label class="label"><input type="checkbox" id="tiltMode" checked /> Eyes follow tilt</label>
+        <button class="btn" id="sensorBtn">Enable Sensors</button>
+        <label class="label"><input type="radio" name="mode" id="modeMotion" checked /> Motion</label>
+        <label class="label"><input type="radio" name="mode" id="modeTilt" /> Tilt</label>
+      </div>
+
+      <div class="row">
+        <label class="label" for="gain">Motion Gain</label>
+        <input id="gain" type="range" min="5" max="60" value="22" />
+        <span class="mono" id="gainVal">22</span>
+      </div>
+
+      <div class="row">
+        <label class="label"><input type="checkbox" id="debug" /> Debug</label>
+        <span class="mono" id="dbg"></span>
       </div>
 
       <div class="tip">
         Tap the background to show/hide this UI.<br/>
-        Tip: For true fullscreen on iPad, use Safari → Share → Add to Home Screen.
+        Notes: Motion (movement direction) can be weak on iPad. Try quick short moves.
       </div>
     </section>
   </main>
