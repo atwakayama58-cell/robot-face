@@ -7,14 +7,19 @@ const fullBtn = document.getElementById('fullBtn');
 const sensorBtn = document.getElementById('sensorBtn');
 const modeMotion = document.getElementById('modeMotion');
 const modeTilt = document.getElementById('modeTilt');
+
 const gain = document.getElementById('gain');
 const gainVal = document.getElementById('gainVal');
+const smooth = document.getElementById('smooth');
+const smoothVal = document.getElementById('smoothVal');
+const range = document.getElementById('range');
+const rangeVal = document.getElementById('rangeVal');
+
 const debug = document.getElementById('debug');
 const dbg = document.getElementById('dbg');
 
 const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
 
-// ---------- Line color (persisted)
 function setLineColor(c){
   document.documentElement.style.setProperty('--line', c);
   try{ localStorage.setItem('lineColor', c); }catch{}
@@ -26,7 +31,6 @@ try{
 }catch{ setLineColor(lineColor.value); }
 lineColor.addEventListener('input', e=>setLineColor(e.target.value));
 
-// ---------- Mood
 document.querySelectorAll('[data-mood]').forEach(b=>{
   b.addEventListener('click', ()=>{
     const m = b.dataset.mood;
@@ -45,7 +49,6 @@ document.querySelectorAll('[data-mood]').forEach(b=>{
   });
 });
 
-// ---------- HUD toggle: background tap
 function toggleHud(){
   hud.classList.toggle('hidden');
   try{ localStorage.setItem('hudHidden', hud.classList.contains('hidden') ? '1' : '0'); }catch{}
@@ -68,15 +71,28 @@ window.addEventListener('pointerup', (e)=>{
   if(dx <= 10 && dy <= 10 && dt <= 350) toggleHud();
 });
 
-// ---------- Eye helpers
-function setPupilOffset(tx, ty){
-  p1.style.transform = `translate(${tx}px, ${ty}px)`;
-  p2.style.transform = `translate(${tx}px, ${ty}px)`;
+let targetX = 0, targetY = 0;
+let currentX = 0, currentY = 0;
+function setPupilTarget(tx, ty){
+  targetX = tx; targetY = ty;
 }
 function updateDebug(txt){
   if(!debug.checked){ dbg.textContent=''; return; }
   dbg.textContent = txt;
 }
+
+// Smooth animation loop (slows down motion)
+function raf(){
+  const s = Number(smooth.value); // 0..90
+  const lerp = clamp(0.6 - (s/90)*0.55, 0.05, 0.6); // higher smooth => smaller step
+  currentX += (targetX - currentX) * lerp;
+  currentY += (targetY - currentY) * lerp;
+
+  p1.style.transform = `translate(${currentX.toFixed(2)}px, ${currentY.toFixed(2)}px)`;
+  p2.style.transform = `translate(${currentX.toFixed(2)}px, ${currentY.toFixed(2)}px)`;
+  requestAnimationFrame(raf);
+}
+requestAnimationFrame(raf);
 
 // Fallback pointer tracking when sensors not active
 let sensorsActive = false;
@@ -84,7 +100,8 @@ window.addEventListener('pointermove', e=>{
   if (sensorsActive) return;
   const dx=(e.clientX-innerWidth/2)/(innerWidth/2);
   const dy=(e.clientY-innerHeight/2)/(innerHeight/2);
-  setPupilOffset(clamp(dx,-1,1)*30, clamp(dy,-1,1)*30);
+  const maxPx = Number(range.value);
+  setPupilTarget(clamp(dx,-1,1)*maxPx, clamp(dy,-1,1)*maxPx);
 });
 
 // Blink
@@ -93,7 +110,7 @@ setInterval(()=>{
   setTimeout(()=>document.querySelectorAll('.eye').forEach(e=>e.style.transform='scaleY(1)'),120);
 },3200);
 
-// ---------- Fullscreen button
+// Fullscreen
 async function requestFullscreen(){
   const el = document.documentElement;
   try{
@@ -104,69 +121,71 @@ async function requestFullscreen(){
 }
 fullBtn.addEventListener('click', requestFullscreen);
 
-// ---------- Mode + gain persistence
-function setModeUI(){
-  try{ localStorage.setItem('mode', modeMotion.checked ? 'motion' : 'tilt'); }catch{}
-}
-try{
-  const savedMode = localStorage.getItem('mode');
-  if(savedMode === 'tilt'){ modeTilt.checked = true; modeMotion.checked = false; }
-}catch{}
+// Persistence helpers
+function persist(key, value){ try{ localStorage.setItem(key, String(value)); }catch{} }
+function restore(key){ try{ return localStorage.getItem(key); }catch{ return null; } }
+
+// Mode
+const savedMode = restore('mode');
+if(savedMode === 'tilt'){ modeTilt.checked = true; modeMotion.checked = false; }
+function setModeUI(){ persist('mode', modeMotion.checked ? 'motion' : 'tilt'); }
 modeMotion.addEventListener('change', setModeUI);
 modeTilt.addEventListener('change', setModeUI);
 
-function setGain(v){
-  gainVal.textContent = String(v);
-  try{ localStorage.setItem('gain', String(v)); }catch{}
+// Sliders
+function loadSlider(slider, label, key){
+  const v = restore(key);
+  if(v !== null) slider.value = v;
+  label.textContent = String(slider.value);
 }
-try{
-  const g = localStorage.getItem('gain');
-  if(g){ gain.value = g; setGain(g); } else setGain(gain.value);
-}catch{ setGain(gain.value); }
-gain.addEventListener('input', ()=>setGain(gain.value));
+function bindSlider(slider, label, key){
+  slider.addEventListener('input', ()=>{ label.textContent = String(slider.value); persist(key, slider.value); });
+}
+loadSlider(gain, gainVal, 'gain');
+loadSlider(smooth, smoothVal, 'smooth');
+loadSlider(range, rangeVal, 'range');
+bindSlider(gain, gainVal, 'gain');
+bindSlider(smooth, smoothVal, 'smooth');
+bindSlider(range, rangeVal, 'range');
 
-// ---------- Sensors: Motion (movement direction) + Tilt
+// Sensors
 let gx=0, gy=0, gz=0;
-const alpha = 0.90; // smoother gravity estimate
-let lastMotionTS = 0;
+const alpha = 0.92;
+let lastTS = 0;
 
 function handleMotion(e){
   if(!modeMotion.checked) return;
 
   const aG = e.accelerationIncludingGravity;
-  const aL = e.acceleration; // sometimes null on iOS; use as fallback if present
+  const aL = e.acceleration;
   if(!aG && !aL) return;
 
   const xG = aG?.x ?? 0;
   const yG = aG?.y ?? 0;
   const zG = aG?.z ?? 0;
 
-  // gravity estimate from includingGravity
   gx = alpha*gx + (1-alpha)*xG;
   gy = alpha*gy + (1-alpha)*yG;
   gz = alpha*gz + (1-alpha)*zG;
 
-  // linear acceleration: prefer e.acceleration, else subtract gravity estimate
   const lax = (aL?.x ?? (xG - gx));
   const lay = (aL?.y ?? (yG - gy));
 
   const g = Number(gain.value);
-  const maxPx = 34;
+  const maxPx = Number(range.value);
 
-  // Map acceleration -> pupil offset (tuned empirically)
   const tx = clamp(lax * g, -maxPx, maxPx);
   const ty = clamp(lay * g, -maxPx, maxPx);
 
-  setPupilOffset(tx, ty);
+  setPupilTarget(tx, ty);
 
   const now = Date.now();
-  if(now - lastMotionTS > 80){
-    updateDebug(`motion ax=${lax.toFixed(2)} ay=${lay.toFixed(2)} | px=(${tx.toFixed(1)},${ty.toFixed(1)})`);
-    lastMotionTS = now;
+  if(debug.checked && now - lastTS > 90){
+    updateDebug(`motion ax=${lax.toFixed(2)} ay=${lay.toFixed(2)} | target=(${tx.toFixed(1)},${ty.toFixed(1)})`);
+    lastTS = now;
   }
 }
 
-let lastOrientTS = 0;
 function handleOrientation(e){
   if(!modeTilt.checked) return;
   const gamma = (typeof e.gamma === 'number') ? e.gamma : 0;
@@ -175,21 +194,20 @@ function handleOrientation(e){
   const nx = clamp(gamma / 30, -1, 1);
   const ny = clamp(beta  / 30, -1, 1);
 
-  const maxPx = 34;
+  const maxPx = Number(range.value);
   const tx = nx * maxPx;
   const ty = ny * maxPx;
 
-  setPupilOffset(tx, ty);
+  setPupilTarget(tx, ty);
 
   const now = Date.now();
-  if(now - lastOrientTS > 120){
-    updateDebug(`tilt beta=${beta.toFixed(1)} gamma=${gamma.toFixed(1)} | px=(${tx.toFixed(1)},${ty.toFixed(1)})`);
-    lastOrientTS = now;
+  if(debug.checked && now - lastTS > 120){
+    updateDebug(`tilt beta=${beta.toFixed(1)} gamma=${gamma.toFixed(1)} | target=(${tx.toFixed(1)},${ty.toFixed(1)})`);
+    lastTS = now;
   }
 }
 
 async function enableSensors(){
-  // Request permissions on iOS (must be in user gesture)
   try{
     if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
       const res = await DeviceMotionEvent.requestPermission();
@@ -204,7 +222,7 @@ async function enableSensors(){
     window.addEventListener('deviceorientation', handleOrientation, { passive: true });
     sensorsActive = true;
     sensorBtn.textContent = 'Sensors Enabled';
-    try{ localStorage.setItem('sensorsEnabled', '1'); }catch{}
+    persist('sensorsEnabled', '1');
   }catch(_e){
     sensorBtn.textContent = 'Sensors Unsupported';
   }

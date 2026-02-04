@@ -21,7 +21,6 @@
       <div class="mouth" id="mouth"></div>
     </section>
 
-    <!-- HUD: hidden by default -->
     <section class="hud hidden" id="hud" aria-label="Controls">
       <div class="row">
         <button class="btn" data-mood="neutral">Neutral</button>
@@ -43,8 +42,20 @@
 
       <div class="row">
         <label class="label" for="gain">Motion Gain</label>
-        <input id="gain" type="range" min="5" max="60" value="22" />
-        <span class="mono" id="gainVal">22</span>
+        <input id="gain" type="range" min="3" max="80" value="18" />
+        <span class="mono" id="gainVal">18</span>
+      </div>
+
+      <div class="row">
+        <label class="label" for="smooth">Smoothness</label>
+        <input id="smooth" type="range" min="0" max="90" value="55" />
+        <span class="mono" id="smoothVal">55</span>
+      </div>
+
+      <div class="row">
+        <label class="label" for="range">Eye Range</label>
+        <input id="range" type="range" min="24" max="70" value="54" />
+        <span class="mono" id="rangeVal">54</span>
       </div>
 
       <div class="row">
@@ -54,7 +65,7 @@
 
       <div class="tip">
         Tap the background to show/hide this UI.<br/>
-        Notes: Motion (movement direction) can be weak on iPad. Try quick short moves.
+        Tips: Motion can feel “snappy” on iPad. Increase Smoothness to slow it down.
       </div>
     </section>
   </main>
