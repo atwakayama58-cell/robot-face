@@ -5,6 +5,8 @@ const mouth = document.getElementById('mouth');
 
 const accent = document.getElementById('accent');
 const pupilColor = document.getElementById('pupilColor');
+const blinkToggle = document.getElementById('blinkToggle');
+
 const fullBtn = document.getElementById('fullBtn');
 const sensorBtn = document.getElementById('sensorBtn');
 const modeMotion = document.getElementById('modeMotion');
@@ -43,6 +45,13 @@ accent.addEventListener('input', e=>setAccent(e.target.value));
 const savedP = restore('pupil');
 if(savedP){ pupilColor.value = savedP; setPupil(savedP); } else setPupil(pupilColor.value);
 pupilColor.addEventListener('input', e=>setPupil(e.target.value));
+
+// ----- blink toggle
+const savedBlink = restore('blink');
+blinkToggle.checked = (savedBlink === null) ? true : (savedBlink === '1');
+blinkToggle.addEventListener('change', ()=>{
+  persist('blink', blinkToggle.checked ? '1' : '0');
+});
 
 // ----- moods (mouth only)
 document.querySelectorAll('[data-mood]').forEach(b=>{
@@ -153,7 +162,7 @@ function applyLandscapeMapping(ax, ay){
   return {x, y};
 }
 
-// ----- smoothing loop
+// ----- smoothing loop (pupils)
 let targetX=0, targetY=0;
 let currentX=0, currentY=0;
 function setPupilTarget(tx, ty){ targetX=tx; targetY=ty; }
@@ -255,3 +264,33 @@ async function enableSensors(){
   }
 }
 sensorBtn.addEventListener('click', enableSensors);
+
+// ----- random blink (toggleable)
+let blinkBusy = false;
+function blinkOnce(){
+  if(blinkBusy) return;
+  blinkBusy = true;
+  const eyes = document.querySelectorAll('.eye');
+  eyes.forEach(e=>e.style.transform='scaleY(0.12)');
+  setTimeout(()=>{
+    eyes.forEach(e=>e.style.transform='scaleY(1)');
+    setTimeout(()=>{ blinkBusy=false; }, 140);
+  }, 140);
+}
+
+function scheduleBlink(){
+  const minMs = 2800;
+  const maxMs = 7200;
+  const next = Math.floor(minMs + Math.random()*(maxMs-minMs));
+  setTimeout(()=>{
+    if(blinkToggle.checked){
+      // sometimes double-blink
+      blinkOnce();
+      if(Math.random() < 0.18){
+        setTimeout(()=> blinkToggle.checked && blinkOnce(), 260);
+      }
+    }
+    scheduleBlink();
+  }, next);
+}
+scheduleBlink();
