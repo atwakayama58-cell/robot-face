@@ -69,6 +69,7 @@ body{
     0 0 26px rgba(26,167,255,.18);
   position:relative;
   overflow:hidden;
+  transition: transform 120ms ease;
 }
 .eye-shine{
   position:absolute;
@@ -78,7 +79,7 @@ body{
   opacity:.7;
   pointer-events:none;
 }
-/* The moving eyeball (pupil) */
+/* Moving eyeball */
 .pupil{
   position:absolute;
   left:50%; top:50%;
@@ -87,7 +88,7 @@ body{
   margin-left:-31%;
   margin-top:-31%;
   border-radius:999px;
-  background: radial-gradient(circle at 35% 30%, var(--pupil), color-mix(in srgb, var(--accent) 65%, var(--pupil2) 35%) 55%, var(--pupil2));
+  background: var(--pupil);
   box-shadow:
     0 0 22px rgba(26,167,255,.55),
     0 0 44px rgba(47,227,255,.22);
